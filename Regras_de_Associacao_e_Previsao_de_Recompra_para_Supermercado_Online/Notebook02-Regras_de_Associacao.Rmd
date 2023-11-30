@@ -1,0 +1,659 @@
+---
+title: "Projeto_07_Market_Basket_Analysis_para_Supermercado_Online"
+author: "Thiago Bulgarelli"
+date: "`r Sys.Date()`"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Regras de Associação e Previsão de Recompra para Rede de Varejo Usando Market Basket Analysis e Machine Learning
+
+Quer você faça compras com lista de compras, meticulosamente planejadas ou deixe que o capricho guie seus passos, nossos rituais únicos de compra definem quem somos. Instacart, um aplicativo de pedido e entrega de supermercado, tem como objetivo facilitar o preenchimento de sua geladeira e dispensa com seus itens pessoais favoritos e itens básicos quando você precisar deles. Depois de selecionar produtos por meio do aplicativo Instacart, os compradores revisam seus pedidos, fazem compras e a entrega é feita na loja mais próxima de você.
+
+A Equipe de Ciência de Dados da Instacart desempenha um papel importante no fornecimento dessa experiência de compra agradável. Atualmente, eles usam dados transacionais para desenvolver modelos que preveem quais produtos um usuário comprará novamente, quais tentará pela primeira vez ou quais adicionará ao carrinho durante uma sessão. Recentemente, a Instacart disponibilizou esses dados de forma aberta e o link para download você encontra logo abaixo.
+
+Neste projeto de Data Science, você usará esses dados anônimos nos pedidos dos clientes ao longo do tempo para prever quais produtos adquiridos anteriormente estarão no próximo pedido de um usuário.
+
+Vamos utilizar a linguagem R e os pacotes de Market Basket Analysis oferecidos pela linguagem. O link para download do dataset encontra-se em:
+
+<https://www.kaggle.com/competitions/instacart-market-basket-analysis>
+
+### Detalhamento do Problema de Negócio da Instacart
+
+A Instacart espera que a Comunidade de Machine Learning use os dados para testar modelos que realizem a previsão de produtos que os clientes comprarão novamente, experimentarão pela primeira vez ou adicionarão ao carrinho de compras durante o próximo acesso.
+
+Atualmente a Instacart usa XGBoost, Word2Vec e Annoy na produção de dados semelhantes, no intuito de oferecer aos Clientes Itens para "Comprar Novamente" e recomendar outros para suas novas compras.
+
+Esses dados e o algoritmo treinado, estão oferecendo a Instacart uma maneira de revolucionar a experiencia de compra e descoberta de novos produtos para seus Clientes.
+
+Sendo assim nossos objetivos serão:
+
+-   **Parte 1 - Definir 10 Principais Regras Comerciais para os Produtos Listados**
+
+-   **Parte 2 - Modelagem Preditiva para Classificar a Recompra de Produtos**
+
+#### Dicionário de Dados
+
+Os dados fornecidos são fornecidos para fins não comerciais e pode ser baixado no Kaggle como destacamos anteriormente.
+
+Vamos detalhar o dicionário de dados:
+
+-   order_id → Identificação do Pedido
+
+-   user_id → Identificação do Consumidor
+
+-   eval_set → Classe de Valor do Pedido
+
+    -   "prior" → Classe para definir os dados de trabalho e realizar Análises Exploratórias
+
+    -   "train" → Classe para definir os dados de treinamento do modelo
+
+    -   "test" → Classe para Deploy do modelo
+
+-   order_number → Número do Pedido para o Consumidor (1 = Primeiro Pedido, n = Pedidos em Sequencia)
+
+-   order_down → Dia da Semana que o pedido foi colocado
+
+-   order_hour_of_day → Hora do Dia que o Pedido foi colocado
+
+-   days_since_prior → Dias passados desde o ultimo pedido, em base 30 (NA's para primeiro pedido
+
+-   product_id → Identificação do Produto
+
+-   product_name → Nome do Produto
+
+-   aisle_id → Chave Estrangeira
+
+-   department_id → Chave Estrangeira
+
+-   aisle → Nome do Corredor
+
+-   department → Nome do Departamento
+
+-   add_to_cart_order → ordem que o produto foi colocado no carrinho de compras
+
+-   reordered → 1 para produto já comprado no passado, 0 para primeira compra
+
+## Parte 1 - Regras de Associação - Market Basket Analysis
+
+Temos 1, 3 Milhões de observações no dataset completo. Por uma questão de recursos computacionais, vamos separar os problemas de negócio em 2 Markdowns.
+
+### Pacotes de Trabalho
+
+```{r}
+# Pacotes para Manipulação dos Dados
+require(dplyr)
+require(tidyr)
+require(arules)
+require(arulesViz)
+
+# Pacotes para Análise Gráfica
+require(ggplot2)
+
+# Pacotes para Machine Learning
+require(caret)
+
+# Configurações Gerais
+options(digits = 2,
+        warn = -1)
+```
+
+### Carregamento dos Dados
+
+```{r}
+# Definindo Sessão de Trabalho
+setwd("D:/Projeto_VIGENTE")
+
+# Carregando os arquivos separadamente
+df <- read.csv('dados/Dataset_Completo.csv', header = TRUE, sep = ',')
+```
+
+### Limpeza e Organização dos Dados
+
+Nesta etapa, analisaremos se os dados foram carregados corretamente, se temos algum erro de classificação do tipo de dado, se temos dados ausentes, ou ainda se a organização dos dados atende nossas expectativas de trabalho.
+
+```{r}
+# Visualizando o Dataset Completo
+View(df)
+
+# Drop das Colunas de ID
+df$user_id <- NULL
+df$product_id <- NULL
+df$aisle_id <- NULL
+df$department_id <- NULL
+df$eval_set <- NULL
+
+# Verficando se Temos dados NaN
+summary(is.na(df))
+```
+
+Como podemos observar na tabela acima, nao temos valores NaN, portanto seguimos com a organização e definição dos Tipos de Variáveis.
+
+```{r}
+# Organizando as Variáveis
+df <- df %>% select(order_id,
+                    order_number,
+                    order_dow,
+                    order_hour_of_day,
+                    days_since_prior_order,
+                    add_to_cart_order,
+                    product_name,
+                    aisle,
+                    department,
+                    reordered)
+
+# Analisando os Tipos de Variável
+str(df)
+```
+
+```{r}
+# Corrigindo os Tipos de Variável
+df$order_id <- as.factor(df$order_id)
+df$order_number <- as.factor(df$order_number)
+df$order_dow <- as.factor(df$order_dow)
+df$add_to_cart_order <- as.factor(df$add_to_cart_order)
+df$department <- as.factor(df$department)
+df$reordered <- as.factor(df$reordered)
+
+# Verificando o Resultado
+str(df)
+```
+
+### Análise Exploratória
+
+Vamos separar os Tipos de Variáveis para fazermos suas análises específicas.
+
+```{r}
+# Dataset com Variáveis Numéricas
+VarNum <- df %>% select(order_hour_of_day, days_since_prior_order)
+
+# Dataset com Variáveis Categóricas
+VarCat <- df %>% select(order_id,
+                        order_number,
+                        order_dow,
+                        add_to_cart_order,
+                        product_name,
+                        aisle,
+                        department,
+                        reordered)
+```
+
+#### Variáveis Numéricas
+
+Vamos analisar primeiramente as Medias Centrais e de Posição.
+
+```{r}
+# Agrupando os Dados
+SumVarNum1 <- df %>% 
+  group_by(order_id) %>% 
+  summarise(order_hour_of_day = mean(order_hour_of_day))
+
+SumVarNum2 <- df %>% 
+  group_by(order_id) %>% 
+  summarise(days_since_prior_order = mean(days_since_prior_order))
+
+VarNum <- left_join(SumVarNum1, SumVarNum2, by = 'order_id')
+VarNum$order_id <- NULL
+```
+
+```{r}
+# Summarizando as Variáveis Numéricas
+summary(VarNum)
+```
+
+Na média, as ordens são colocadas na hora do almoço, por volta das 13:00. Tendo ainda uma proximidade entre média e mediana, caracterizando uma distribuição normal para esta variável.
+
+Quando olhamos para dias passados da primeira ordem, percebemos que em média passam 7 dias, porém a mediana nos traz praticamente 11 dias. Isso mostra que temos muitos dados a esquerda da curva de distribuição, puxando a média para baixo em relação a mediana. Vamos verificar essas informações graficamente.
+
+```{r}
+# Histograma e Boxplot Variável 'order_hour_of_day'
+par(mfrow = c(1, 2))
+options(scipen = 1)
+
+hist(VarNum$order_hour_of_day,
+     xlab = '', 
+     ylab = '', 
+     main = '')
+title(main = list('Histograma', font = 1.5),
+      xlab = list('Order_Hour_of_Day',
+                  font = 1),
+      ylab = list('Freq Absoluta',font = 1))
+
+boxplot(VarNum$order_hour_of_day, 
+        xlab = '', 
+        ylab = '', 
+        main = '')
+title(main = list('Boxplot', font = 1.5),
+      xlab = list('Order_Hour_of_Day',
+                  font = 1),
+      ylab = list('Freq Absoluta',font = 1))
+```
+
+```{r}
+# Histograma e Boxplot Variável 'Days_Since_Prior_Order'
+par(mfrow = c(1, 2))
+
+hist(VarNum$days_since_prior_order,
+     xlab = '', 
+     ylab = '', 
+     main = '')
+title(main = list('Histograma', font = 1.5),
+      xlab = list('Days_Since_of_Prior_Order',
+                  font = 1),
+      ylab = list('Freq Absoluta',font = 1))
+
+boxplot(VarNum$days_since_prior_order,
+        xlab = '',
+        ylab = '',
+        main = '')
+title(main = list('Boxplot', font = 1.5),
+      xlab = list('Days_Since_of_Prior_Order',
+                  font = 1),
+      ylab = list('Freq Absoluta',font = 1))
+```
+
+Para finalizar com as variáveis numéricas de forma isolada, vamos calcular o desvio padrão.
+
+```{r}
+# Desvio Padrao Order_Hour_of_Day
+sd(VarNum$order_hour_of_day)
+```
+
+```{r}
+# Desvio Padrão Days_Since_Of_Prior_Order
+sd(VarNum$days_since_prior_order)
+```
+
+#### Variáveis Categóricas
+
+Vamos analisar as frequências Absolutas e Relativas de cada Variável.
+
+```{r}
+# Sumarização para Variáveis Categóricas
+summary(VarCat)
+```
+
+```{r}
+# Tabela de Frequência para Order_Dow
+TabFreqOrder_Dow <- as.data.frame(table(VarCat$order_dow, dnn = 'Classes'),
+                     responseName = "FrAbs")
+TabFreqOrder_Dow <- TabFreqOrder_Dow %>%
+  mutate(FrAc = cumsum(FrAbs),
+         Fr = (100 * FrAbs / sum(FrAbs)))
+TabFreqOrder_Dow <- TabFreqOrder_Dow %>% arrange(desc(Fr))
+TabFreqOrder_Dow
+```
+
+```{r}
+# Visuzalizando Graficamente a Variável Order_Dow
+ggplot(TabFreqOrder_Dow, aes(reorder(Classes, -Fr), Fr)) + 
+  geom_col() + 
+  labs(subtitle = 'Volume de Compra por Dia da Semana',
+       x = 'Dias da Semana',
+       y = 'Frequência Relativa')
+```
+
+Como vimos em nossa sumarizacão, a Variável Add_To_Cart_Order possui mais de 50% das observações distribuidas em 6 classes. Vamos visualizar graficamente este ponto!
+
+```{r}
+# Filtrando os 6 Fatores Mais Frequentes da Variável Add_To_Cart_Order
+temp <- VarCat %>% filter(as.numeric(add_to_cart_order) <= 6)
+
+# Visuzalizando Graficamente 
+ggplot(temp, aes(add_to_cart_order)) + 
+  geom_bar() + 
+  labs(subtitle = 'As 6 Primeiras Prioridades de Compra',
+       x = 'Ordem de Interesse do Carrinho',
+       y = 'Quantidade')
+```
+
+Vamos visualizar quais os produtos mais vendidos, assim como Departamento e Corredor.
+
+```{r}
+# Identificando os Produtos mais Vendidos
+temp <- head(as.data.frame(table(VarCat$product_name, dnn = 'Classes'),
+              responseName = "FrAbs") %>%
+  arrange(desc(FrAbs)), 10)
+temp
+```
+
+```{r}
+# Visuzalizando Graficamente
+ggplot(temp, aes(reorder(Classes, -FrAbs), FrAbs)) + 
+  geom_col() + 
+  theme(axis.text.x = element_text(size = 8, angle = 45, hjust = 1)) +
+  labs(subtitle = 'Os 10 Produtos mais Vendidos',
+       x = '',
+       y = 'Qtde')
+```
+
+```{r}
+# Identificando os Departamentos mais Vendidos
+temp <- head(as.data.frame(table(VarCat$department, dnn = 'Classes'),
+              responseName = "FrAbs") %>%
+  arrange(desc(FrAbs)), 10)
+temp
+```
+
+```{r}
+# Visuzalizando Graficamente
+ggplot(temp, aes(reorder(Classes, -FrAbs), FrAbs)) + 
+  geom_col() + 
+  theme(axis.text.x = element_text(size = 8, angle = 45, hjust = 1)) +
+  labs(subtitle = 'Os 10 Departamentos mais Vendidos',
+       x = '',
+       y = 'Qtde')
+```
+
+```{r}
+# Identificando os Corredores mais Vendidos
+temp <- head(as.data.frame(table(VarCat$aisle, dnn = 'Classes'),
+              responseName = "FrAbs") %>%
+  arrange(desc(FrAbs)), 10)
+temp
+```
+
+```{r}
+# Visuzalizando Graficamente
+ggplot(temp, aes(reorder(Classes, -FrAbs), FrAbs)) + 
+  geom_col() + 
+  theme(axis.text.x = element_text(size = 8, angle = 45, hjust = 1)) +
+  labs(subtitle = 'Os 10 Corredores mais Vendidos',
+       x = '',
+       y = 'Qtde')
+```
+
+Vamos cruzar algumas informações e responder algumas perguntas de negócio a respeito do comportamento dos clientes.
+
+**Perguntas Direcionadas:**
+
+Quais Produtos e Departamentos são adquiridos nos horários de pico 12:00-14:00?
+
+```{r}
+# Filtrando o Dataset para Horário de Pico 12:00 - 14:00
+temp <- df %>% select(product_name, order_hour_of_day) %>%
+  filter(between(order_hour_of_day, 12, 14)) 
+temp <- head(as.data.frame(table(temp$product_name, dnn = 'Classes'),
+              responseName = "FrAbs") %>%
+               arrange(desc(FrAbs)), 10)
+temp
+```
+
+```{r}
+# Visuzalizando Graficamente
+ggplot(temp, aes(reorder(Classes, -FrAbs), FrAbs)) + 
+  geom_col() + 
+  theme(axis.text.x = element_text(size = 8, angle = 45, hjust = 1)) +
+  labs(subtitle = 'Os 10 Produtos mais Vendidos',
+       x = '',
+       y = 'Qtde')
+```
+
+Podemos perceber que temos nos horários de pico, os mesmos produtos mais vendidos no geral. Sendo assim o comportamento é semelhante ao Departamentos e Corredores.
+
+Quais são os produtos prioridade 1 e 50 no carrinho?
+
+```{r}
+# Filtrando o Dataset para as Prioridades 1
+temp <- df %>% select(product_name, add_to_cart_order) %>%
+  filter(as.numeric(add_to_cart_order) == 1) 
+temp <- head(as.data.frame(table(temp$product_name, dnn = 'Classes'),
+              responseName = "FrAbs") %>%
+               arrange(desc(FrAbs)), 10)
+temp
+```
+
+```{r}
+# Visuzalizando Graficamente
+ggplot(temp, aes(reorder(Classes, -FrAbs), FrAbs)) + 
+  geom_col() + 
+  theme(axis.text.x = element_text(size = 8, angle = 45, hjust = 1)) +
+  labs(subtitle = 'Produtos de Prioridade 1',
+       x = '',
+       y = 'Qtde')
+```
+
+```{r}
+# Filtrando o Dataset para as Prioridades 50
+temp <- df %>% select(product_name, add_to_cart_order) %>%
+  filter(as.numeric(add_to_cart_order) == 50) 
+temp <- head(as.data.frame(table(temp$product_name, dnn = 'Classes'),
+              responseName = "FrAbs") %>%
+               arrange(desc(FrAbs)), 10)
+temp
+```
+
+```{r}
+# Visuzalizando Graficamente
+ggplot(temp, aes(reorder(Classes, -FrAbs), FrAbs)) + 
+  geom_col() + 
+  theme(axis.text.x = element_text(size = 8, angle = 45, hjust = 1)) +
+  labs(subtitle = 'Produtos de Prioridade 50',
+       x = '',
+       y = 'Qtde')
+```
+
+Quais são os Produtos e de que departamentos com recompra após 30 dias? e Após 10 dias?
+
+```{r}
+# Filtrando o Dataset para Recompra após 30 dias
+temp <- df %>% select(product_name, days_since_prior_order) %>%
+  filter(as.numeric(days_since_prior_order) >= 30) 
+temp <- head(as.data.frame(table(temp$product_name, dnn = 'Classes'),
+              responseName = "FrAbs") %>%
+               arrange(desc(FrAbs)), 10)
+temp
+```
+
+```{r}
+# Visuzalizando Graficamente
+ggplot(temp, aes(reorder(Classes, -FrAbs), FrAbs)) + 
+  geom_col() + 
+  theme(axis.text.x = element_text(size = 8, angle = 45, hjust = 1)) +
+  labs(subtitle = '10 Produtos mais Comprados Após 30 dias do Ultimo Pedido',
+       x = '',
+       y = 'Qtde')
+```
+
+```{r}
+# Filtrando o Dataset para Recompra após 10 dias
+temp <- df %>% select(product_name, days_since_prior_order) %>%
+  filter(as.numeric(days_since_prior_order) >= 10) 
+temp <- head(as.data.frame(table(temp$product_name, dnn = 'Classes'),
+              responseName = "FrAbs") %>%
+               arrange(desc(FrAbs)), 10)
+temp
+```
+
+```{r}
+# Visuzalizando Graficamente
+ggplot(temp, aes(reorder(Classes, -FrAbs), FrAbs)) + 
+  geom_col() + 
+  theme(axis.text.x = element_text(size = 8, angle = 45, hjust = 1)) +
+  labs(subtitle = '10 Produtos mais Comprados Após 10 dias do Ultimo Pedido',
+       x = '',
+       y = 'Qtde')
+```
+
+Como podemos ver, em diferentes cenários, os produtos acabam se repetindo frequentemente, sendo Bananas, Bananas Organicas, Avocados, e Spinafre, produtos recorrentes no comportamento de compra dos Clientes.
+
+Para finalizar nossa análise exploratória, vamos verificar como as variáveis numéricas se comportam entre si, se existe correlação entre elas.
+
+```{r}
+# Coeficiente de Correlação entre as Variáveis Hora da Compra e Dias Após a Primeira Compra
+cor(VarNum$days_since_prior_order, VarNum$order_hour_of_day)
+```
+
+```{r}
+# Visualizando Graficamente uma Amostra do Dataset
+Amostra <- sample_n(VarNum, size = 10000)
+
+ggplot(Amostra, aes(days_since_prior_order, order_hour_of_day)) +
+  geom_point() +
+  labs(x = 'Dias Após a Primeira Compra',
+       y = 'Horário da Compra',
+       subtitle = 'ScatterPlot entre Horário da Compra e Dias Após a Primeira Compra')
+```
+
+Como podemos constatar, não existe correlação entre o Horário de compra e os dias passados após a primeira compra do cliente.
+
+Finalizamos nossa Análise Exploratória. Vamos iniciar nosso trabalho de Regras de Recomendação utilizando Market Basket Analysis.
+
+### Regras de Associação com Market Basket Analysis
+
+Para aplicarmos as regras de associação o dataset precisa ser preparado como se cada linha fosse um recibo de transação e cada coluna um item dentro do recibo. Nós vamos aplicar 6 itens, sendo respeitada a ordem de prioridade de colocação no carrinho, assim representamos a preferência dos clientes no dataset.
+
+```{r}
+# Construindo um Novo Dataset para o MBA
+Item01 <- df %>% select(order_id, product_name, add_to_cart_order) %>%
+  filter(as.numeric(add_to_cart_order) == 1) %>%
+  mutate(Item01 = product_name) %>%
+  select(order_id, Item01)
+
+Item02 <- df %>% select(order_id, product_name, add_to_cart_order) %>%
+  filter(as.numeric(add_to_cart_order) == 2) %>%
+  mutate(Item02 = product_name) %>%
+  select(order_id, Item02)
+
+Item03 <- df %>% select(order_id, product_name, add_to_cart_order) %>%
+  filter(as.numeric(add_to_cart_order) == 3) %>%
+  mutate(Item03 = product_name) %>%
+  select(order_id, Item03)
+
+Item04 <- df %>% select(order_id, product_name, add_to_cart_order) %>%
+  filter(as.numeric(add_to_cart_order) == 4) %>%
+  mutate(Item04 = product_name) %>%
+  select(order_id, Item04)
+
+Item05 <- df %>% select(order_id, product_name, add_to_cart_order) %>%
+  filter(as.numeric(add_to_cart_order) == 5) %>%
+  mutate(Item05 = product_name) %>%
+  select(order_id, Item05)
+
+Item06 <- df %>% select(order_id, product_name, add_to_cart_order) %>%
+  filter(as.numeric(add_to_cart_order) == 6) %>%
+  mutate(Item06 = product_name) %>%
+  select(order_id, Item06)
+
+MBA <- Item01 %>%
+  left_join(Item02, by = c('order_id')) %>%
+  left_join(Item03, by = c('order_id')) %>%
+  left_join(Item04, by = c('order_id')) %>%
+  left_join(Item05, by = c('order_id')) %>%
+  left_join(Item06, by = c('order_id'))
+
+MBA <- drop_na(MBA)
+
+MBA$order_id <- NULL
+
+# Definindo os Fatores
+MBA$Item01 <- as.factor(MBA$Item01)
+MBA$Item02 <- as.factor(MBA$Item02)
+MBA$Item03 <- as.factor(MBA$Item03)
+MBA$Item04 <- as.factor(MBA$Item04)
+MBA$Item05 <- as.factor(MBA$Item05)
+MBA$Item06 <- as.factor(MBA$Item06)
+
+# Agrupando os fatores em listas
+
+MBA <- split(MBA$Item01, MBA$Item02,
+             MBA$Item03, MBA$Item04,
+             MBA$Item05, MBA$Item06,
+             drop = TRUE)
+```
+
+```{r}
+# Tranformando o Dataset em Transações
+transacoes <- transactions(MBA)
+
+# Visualizando Nossos Itens
+itemFrequencyPlot(transacoes, topN = 10, type = 'absolute')
+```
+
+Organizado o dataset para aplicar o MBA, vamos identificar as Regras de Associação. Antes, é importante contextualizar o conceito de **Support**, **Confidence** e **Lift**.
+
+-   **Support** -\> É a fração com que nosso conjunto de itens aparece em todo o nosso dataset.
+
+-   **Confidence** -\> É a probabilidade de que a regra estará correta para uma nova transação com os itens a esquerda (lhs)
+
+-   **Lift** -\> É a taxa que a Confiança da Regra excede a confiança esperada (pré-deifinida pelo analista)
+
+Sendo assim, vamos analisar nossas 10 regras de maior confiança inicalmente.
+
+```{r}
+# Definindo Regras de Associação
+regras <- apriori(transacoes, parameter = list(supp = 0.001, conf = 0.8, maxlen = 6))
+
+# Ordenando em Relação a Confidence
+regras <- sort(regras, by = 'confidence', decreasing = TRUE)
+
+# Visualizando o Resumo
+inspect(head(regras, 10))
+```
+
+Agora podemos responder perguntas como:
+
+-   O que os Consumidores gostariam de comprar antes de comprar Bananas? Visto que Bananas é um dos produtos mais comprados.
+
+-   O que os Consumidores provavelmente comprarão SE comparem Bananas?
+
+Veja que a primeira pergunta se refere aos produtos do lado direito da Associação, onde quando compram A acabam comprando B.
+
+Na segunda pergunta, temos os produtos do lado esquerdo da Associação, onde SE comprarmos A, qual produto compraremos em seguida.
+
+Com essas informações podemos direcionar além da composição visual dos produtos nas prateleiras, ações de marketing para aumento de vendas e fluxo nas lojas fisicas.
+
+```{r}
+# Resposta da Primeira Pergunta
+regras1 <- apriori(data = transacoes, 
+                   parameter = list(supp = 0.001, conf = 0.8),
+                   appearance = list(default = 'lhs', rhs = 'Banana'),
+                   control = list(verbose = FALSE))
+```
+
+```{r}
+# Ordenando as Regras
+regras1 <- sort(regras1, decreasing = TRUE, by = 'confidence')
+```
+
+```{r}
+# Visualizando as 10 Melhores Respostas
+inspect(regras1[1:10])
+```
+
+```{r}
+# Agora em Grafos
+plot(regras1, method = 'graph', measure = 'confidence', limit = 10,
+      shading = 'lift', engine = 'htmlwidget')
+```
+
+Para responder a segunda pergunta, vamos colocar confiança mínima de 10% e ordernar de forma decrescente para que tenhamos resultados de pesquisa, visto que a confidence é menor em situações de compra de apenas 1 único produto.
+
+```{r}
+# Resposta da Segunda Pergunta
+regras2 <- apriori(data = transacoes, 
+                   parameter = list(supp = 0.001, conf = 0.10, minlen = 2),
+                   appearance = list(default = 'rhs', lhs = 'Banana'),
+                   control = list(verbose = FALSE))
+```
+
+```{r}
+# Ordenando as Regras
+regras2 <- sort(regras2, decreasing = TRUE, by = 'confidence')
+```
+
+```{r}
+# Visualizando as 10 Melhores Respostas
+inspect(regras2)
+```
+
+```{r}
+# Agora em Grafos
+plot(regras2, method = 'graph', measure = 'confidence', limit = 10,
+      shading = 'lift', engine = 'htmlwidget')
+```
+
+Vamos finalizar esta parte do trabalho, correspondendo ao Market Basket Analysis e a partir dele trabalharemos em nosso segundo problema de negócio, referente a Modelagem Preditiva para Recompra de Produtos.

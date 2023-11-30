@@ -1,0 +1,437 @@
+---
+title: "Projeto_07_Market_Basket_Analysis_para_Supermercado_Online"
+author: "Thiago Bulgarelli"
+date: "`r Sys.Date()`"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Regras de Associação e Previsão de Recompra para Rede de Varejo Usando Market Basket Analysis e Machine Learning
+
+Quer você faça compras com lista de compras, meticulosamente planejadas ou deixe que o capricho guie seus passos, nossos rituais únicos de compra definem quem somos. Instacart, um aplicativo de pedido e entrega de supermercado, tem como objetivo facilitar o preenchimento de sua geladeira e dispensa com seus itens pessoais favoritos e itens básicos quando você precisar deles. Depois de selecionar produtos por meio do aplicativo Instacart, os compradores revisam seus pedidos, fazem compras e a entrega é feita na loja mais próxima de você.
+
+A Equipe de Ciência de Dados da Instacart desempenha um papel importante no fornecimento dessa experiência de compra agradável. Atualmente, eles usam dados transacionais para desenvolver modelos que preveem quais produtos um usuário comprará novamente, quais tentará pela primeira vez ou quais adicionará ao carrinho durante uma sessão. Recentemente, a Instacart disponibilizou esses dados de forma aberta e o link para download você encontra logo abaixo.
+
+Neste projeto de Data Science, você usará esses dados anônimos nos pedidos dos clientes ao longo do tempo para prever quais produtos adquiridos anteriormente estarão no próximo pedido de um usuário.
+
+Vamos utilizar a linguagem R e os pacotes de Market Basket Analysis oferecidos pela linguagem. O link para download do dataset encontra-se em:
+
+<https://www.kaggle.com/competitions/instacart-market-basket-analysis>
+
+### Detalhamento do Problema de Negócio da Instacart
+
+A Instacart espera que a Comunidade de Machine Learning use os dados para testar modelos que realizem a previsão de produtos que os clientes comprarão novamente, experimentarão pela primeira vez ou adicionarão ao carrinho de compras durante o próximo acesso.
+
+Atualmente a Instacart usa XGBoost, Word2Vec e Annoy na produção de dados semelhantes, no intuito de oferecer aos Clientes Itens para "Comprar Novamente" e recomendar outros para suas novas compras.
+
+Esses dados e o algoritmo treinado, estão oferecendo a Instacart uma maneira de revolucionar a experiencia de compra e descoberta de novos produtos para seus Clientes.
+
+Sendo assim nossos objetivos serão:
+
+-   **Parte 1 - Definir 10 Principais Regras Comerciais para os Produtos Listados**
+
+-   **Parte 2 - Modelagem Preditiva para Classificar a Recompra de Produtos**
+
+#### Dicionário de Dados
+
+Os dados fornecidos são fornecidos para fins não comerciais e pode ser baixado no Kaggle como destacamos anteriormente.
+
+Vamos detalhar o dicionário de dados:
+
+-   order_id → Identificação do Pedido
+
+-   user_id → Identificação do Consumidor
+
+-   eval_set → Classe de Valor do Pedido
+
+    -   "prior" → Classe para definir os dados de trabalho e realizar Análises Exploratórias
+
+    -   "train" → Classe para definir os dados de treinamento do modelo
+
+    -   "test" → Classe para Deploy do modelo
+
+-   order_number → Número do Pedido para o Consumidor (1 = Primeiro Pedido, n = Pedidos em Sequencia)
+
+-   order_down → Dia da Semana que o pedido foi colocado
+
+-   order_hour_of_day → Hora do Dia que o Pedido foi colocado
+
+-   days_since_prior → Dias passados desde o ultimo pedido, em base 30 (NA's para primeiro pedido
+
+-   product_id → Identificação do Produto
+
+-   product_name → Nome do Produto
+
+-   aisle_id → Chave Estrangeira
+
+-   department_id → Chave Estrangeira
+
+-   aisle → Nome do Corredor
+
+-   department → Nome do Departamento
+
+-   add_to_cart_order → ordem que o produto foi colocado no carrinho de compras
+
+-   reordered → 1 para produto já comprado no passado, 0 para primeira compra
+
+## Parte 2 - Previsão de Recompra de Produtos
+
+Vamos trabalhar agora utilizando Machine Learning para classificar uma ordem em Recompra ou Primeira Compra, nos baseando no histórico de recompra que temos.
+
+### Pacotes de Trabalho
+
+```{r}
+# Pacotes para Manipulação dos Dados
+require(dplyr)
+
+# Pacotes para Machine Learning
+require(randomForest)
+require(caret)
+require(ROSE)
+
+# Configurações Gerais
+options(digits = 2,
+        warn = -1,
+        verbose = FALSE)
+```
+
+### Carregamento dos Dados
+
+```{r}
+# Definindo Sessão de Trabalho
+setwd("D:/Projeto_VIGENTE")
+
+# Carregando os arquivos separadamente
+df <- read.csv('dados/Dataset_Completo.csv', header = TRUE, sep = ',')
+```
+
+### Limpeza e Organização dos Dados
+
+Vamos analisar se os dados foram carregados corretamente, se temos algum erro de classificação do tipo de dado, se temos dados ausentes, ou ainda se a organização dos dados atende nossas expectativas de trabalho.
+
+```{r}
+# Visualizando o Dataset Completo
+View(df)
+
+# Verficando se Temos dados NaN
+summary(is.na(df))
+```
+
+Na tabela acima, verificamos que nao temos valores NaN, portanto seguimos com a organização e definição dos Tipos de Variáveis.
+
+Tomamos a decisão de retirar as Variáveis "product_name", "department" e "aisle", pois são do tipo CHAR e com muitas classes para serem transformadas em fator por exemplo.
+
+```{r}
+# Organizando as Variáveis
+df1 <- df %>% select(order_id,
+                     user_id,
+                     product_id,
+                     order_number,
+                     order_dow,
+                     order_hour_of_day,
+                     days_since_prior_order,
+                     add_to_cart_order,
+                     reordered)
+
+str(df1)
+```
+
+### Pré-Processamento dos Dados
+
+Vamos verificar se a Variável resposta está balanceada.
+
+```{r}
+# Balanceamento da Variáveis Resposta
+summary(as.factor(df1$reordered))
+```
+
+#### Feature Engeneering
+
+Vamos construir algumas variáveis novas, relacionando a recompra com Produtos e Usuários.
+
+Para Produto vamos calcular a Frequência Absoluta de Recompra e a Taxa de Recompra para cada produto.
+
+```{r}
+# Cálculo do Número de Vezes que um Produto foi Comprado
+prd <- df1 %>% 
+  group_by(product_id) %>% 
+  summarise(p_total_purchase = n_distinct(order_id))
+
+# Calculo do Product_Reordered_Ratio
+p_reorder_ratio <- df1 %>%
+  group_by(product_id) %>%
+  summarise(prod_reorder_ratio = mean(reordered))
+
+# Unindo as duas informações
+prd <- left_join(prd, p_reorder_ratio, by = 'product_id')
+
+# Visualizando a Tabela Final
+head(prd)
+```
+
+Para Usuário, vamos calcular o Número de Ordens e a Taxa de Recompra por Usuário.
+
+```{r}
+# Cálculo do Número de Compras do Usuário
+user_total_orders <- df1 %>% 
+  group_by(user_id) %>% 
+  summarise(user_total_orders = max(order_number))
+
+# Calculo da Taxa de Recompra por Usuário
+user_reordered <- df1 %>%
+  group_by(user_id) %>%
+  summarise(user_reorder_ratio = mean(reordered))
+
+# Unindo as duas informações
+user <- left_join(user_total_orders, user_reordered, by = 'user_id')
+
+# Visualizando Tabela Final
+head(user)
+```
+
+Podemos ainda calcular quantos Produtos de Diferentes tipos um usuário comprou.
+
+```{r}
+# Calculo da Quantidade de Produtos distintos por Usuário
+pdt <- df1 %>%
+  group_by(user_id, product_id) %>%
+  summarise(total_purchase = n_distinct(order_id), .groups = 'keep')
+
+# Visualizando a tabela
+head(pdt)
+```
+
+Agora, vamos unir os datasets referenciando as informações pelos respectivos ID's.
+
+```{r}
+# Unindo os Datasets
+df2 <- pdt %>% 
+  left_join(user, by = 'user_id') %>%
+  left_join(prd, by = 'product_id')
+
+temp <- df1 %>% select(user_id, 
+                       product_id, 
+                       add_to_cart_order, 
+                       order_dow,
+                       order_hour_of_day,
+                       days_since_prior_order,
+                       reordered)
+
+df2 <- left_join(df2, temp, by = join_by(user_id, product_id))
+
+# Elminando Variável sem Informação útil
+df2$total_purchase <- NULL
+df2$user_id <- NULL
+df2$product_id <- NULL
+
+# Visualiza tabela final
+View(df2)
+dim(df2)
+```
+
+```{r}
+# Verificando se temos valores NaN
+summary(is.na(df2))
+```
+
+Vamos, liberar memória consumida até aqui durante os processos, assim mantemos a nossa capacidade computacional mais eficiente.
+
+```{r}
+# Liberando Memória livre
+gc()
+```
+
+Por fim, vamos utilizar uma amostra dos dados apenas com 1/3 da amostra original, devido nossa limitação de capacidade computacional, e aplicar padronização nos dados a fim de equalizar as escalas.
+
+```{r}
+# Diminuindo o tamanho da Amostra e Corrigindo o Tipo da Variável Resposta
+df2$reordered <- as.factor(df2$reordered)
+
+df3 <- slice_sample(df2, n = 100000)
+
+# Divisão em Treino e Teste
+IndiceParticao <- createDataPartition(df3$reordered, p = 0.75,
+                                      list = FALSE, times = 1)
+
+training <- df3[IndiceParticao,]
+testing <- df3[-IndiceParticao,]
+
+# Padronização dos Dados
+prepProcModel <- preProcess(training, method = c("center", "scale"))
+training <- predict(prepProcModel, training)
+testing <- predict(prepProcModel, testing)
+```
+
+### Modelagem Preditiva - Machine Learning
+
+Vamos inicialmente construir nosso modelo Base com o algoritmo mais simples que conhecemos. Calculamos suas métricas e então criamos outros modelos mais complexos.
+
+#### Modelo 00
+
+Vamos utilizar o algoritmo Generalized Linear Model ou Regressão Logística.
+
+```{r}
+# Modelo Base
+set.seed(825)
+gc()
+M00 <- train(reordered ~ ., data = training,
+             method = 'glm')
+
+# Visualizando Modelo
+M00
+```
+
+```{r}
+# Aplicando aos Dados de Teste
+p00 <- predict(M00, newdata = testing[,-9])
+
+# Medindo a Acurácia
+confusionMatrix(data = p00, reference = testing$reordered)
+```
+
+Temos uma acurácia de 78,1% sem otimização.
+
+#### Modelo 01
+
+Algoritmo -\> Random Forest
+
+```{r}
+# Modelo 01
+set.seed(825)
+gc()
+M01 <- train(reordered ~ ., data = training,
+             method = 'rf')
+
+# Visualizando Modelo
+M01
+```
+
+```{r}
+# Aplicando aos Dados de Teste
+p01 <- predict(M01, newdata = testing[,-9])
+
+# Medindo a Acurácia
+confusionMatrix(data = p01, reference = testing$reordered)
+```
+
+Temos uma acurácia de 78,4% sem alterarmos os modelos com algum Controle de Training ou Tuning.
+
+#### Modelo 02
+
+Algoritimo Boosted Logistic Regression
+
+```{r}
+# Modelo 02
+set.seed(825)
+gc()
+M02 <- train(reordered ~ ., data = training,
+             method = 'LogitBoost')
+
+# Visualizando Modelo
+M02
+```
+
+```{r}
+# Aplicando aos Dados de Teste
+p02 <- predict(M02, newdata = testing[,-9])
+
+# Medindo a Acurácia
+confusionMatrix(data = p02, reference = testing$reordered)
+```
+
+Temos uma acurácia de 76,2% sem alterarmos os modelos com algum Controle de Training ou Tuning.
+
+#### Modelo 03
+
+Algoritmo eXtreme Gradient Boosting
+
+```{r}
+# Modelo 03
+set.seed(825)
+gc()
+M03 <- train(reordered ~ ., data = training,
+             method = 'xgbLinear')
+
+# Visualizando Modelo
+M03
+```
+
+```{r}
+# Aplicando aos Dados de Teste
+p03 <- predict(M03, newdata = testing[,-9])
+
+# Medindo a Acurácia
+confusionMatrix(data = p03, reference = testing$reordered)
+```
+
+Temos uma acurácia de 78,4% sem alterarmos os modelos com algum Controle de Training ou Tuning.
+
+#### Modelo 04
+
+Algoritmo Stochastic Gradient Boosting
+
+```{r}
+# Modelo 04
+set.seed(825)
+gc()
+M04 <- train(reordered ~ ., data = training,
+             method = 'gbm',
+             verbose = FALSE)
+
+# Visualizando Modelo
+M04
+```
+
+```{r}
+# Aplicando aos Dados de Teste
+p04 <- predict(M04, newdata = testing[,-9])
+
+# Medindo a Acurácia
+confusionMatrix(data = p04, reference = testing$reordered)
+```
+
+Temos uma acurácia de 78,6% sem alterarmos o modelo com algum Controle de Training ou Tuning.
+
+Vamos criar um modelo 05 com otimização de hiperparâmetros e controle de training com o objetivo de aumentar a acurácia do nosso modelo.
+
+```{r}
+# Training Control
+FitTraining <- trainControl(method = 'repeatedcv',
+                            number = 5,
+                            repeats = 5)
+
+# Tuning Grid
+gbmGrid <-  expand.grid(interaction.depth = c(5, 7, 10), 
+                        n.trees = (1:10)*50, 
+                        shrinkage = 0.05,
+                        n.minobsinnode = 20)
+
+# Modelo 06
+set.seed(825)
+gc()
+M05 <- train(reordered ~ ., data = training,
+             method = 'gbm',
+             trControl = FitTraining,
+             tuneGrid = gbmGrid,
+             verbose = FALSE)
+
+# Visualizando Modelo
+M05
+```
+
+```{r}
+# Aplicando aos Dados de Teste
+p05 <- predict(M05, newdata = testing[,-9])
+
+# Medindo a Acurácia
+confusionMatrix(data = p05, reference = testing$reordered)
+```
+
+Como podemos verificar, utilizamos os processos de Training Controle e Tunning mas o resultado foi o mesmo que os hiperparâmetros com valores standard, sendo assim, vamos utilizar o o Modelo 04 como Final.
+
+A escolha do Modelo 04 com acurácia de 78,6% se dá pelo menor erro na previsão da Classe 0 da Variável Resposta, como podemos observar na Matrix de Confusão.
+
+FIM!
