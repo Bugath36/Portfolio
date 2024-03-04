@@ -1,7 +1,7 @@
 ## Projeto 07 - Junção dos Arquivos Originais em um Dataset Único
 
 # Os arquivos individuais precisam ser montados utilizando técnicas de junção
-# que serão aplicadas para obtermos o dataset completo e iniciarmos os trabalhos de solução do problema de negócio.
+# que serão aplicadas para obtermos o dataset completo e iniciarmos os trabalhos de solução do problema de negócio. # nolint: line_length_linter.
 
 # Definindo a pasta de trabalho
 setwd('D:/Projeto_VIGENTE')
