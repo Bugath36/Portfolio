@@ -5,166 +5,198 @@
 	Free for personal and commercial use under the CCA 3.0 license (html5up.net/license)
 -->
 <html>
-	<head>
-		<title>Projeto - Previsão de Consumo de Energia Residencial por Eletrodomésticos com Machine Learning</title>
-		<meta charset="utf-8" />
-		<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
-		<link rel="stylesheet" href="assets/css/main.css" />
-	</head>
-	<body class="is-preload">
 
-		<!-- Wrapper -->
-			<div id="wrapper">
+<head>
+	<title>Projeto - Previsão de Consumo de Energia Residencial por Eletrodomésticos com Machine Learning</title>
+	<meta charset="utf-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+	<link rel="stylesheet" href="assets/css/main.css" />
+</head>
 
-				<!-- Main -->
-					<div id="main">
-						<div class="inner">
+<body class="is-preload">
 
-							<!-- Header -->
-								<header id="header">
-									<a href="index.html" class="logo"><strong>Portfolio de Projetos</strong></a>
-									
-								</header>
+	<!-- Wrapper -->
+	<div id="wrapper">
 
-							<!-- Content -->
-								<section>
-									<header class="main">
-										<h1>Previsão de Consumo de Energia Residencial por Eletrodomésticos com Machine Learning</h1>
-									</header>
+		<!-- Main -->
+		<div id="main">
+			<div class="inner">
+
+				<!-- Header -->
+				<header id="header">
+					<a href="index.html" class="logo"><strong>Portfolio de Projetos</strong></a>
+
+				</header>
+
+				<!-- Content -->
+				<section>
+					<header class="main">
+						<h1>Previsão de Consumo de Energia Residencial por Eletrodomésticos com Machine Learning</h1>
+					</header>
 
 
-									<p style="text-align: justify;">Este projeto de IoT tem como objetivo a criação de modelos preditivos para a previsão de consumo de energia de eletrodoméstico. Os dados utilizados incluem medições de sensores de temperatura e umidade de uma rede sem fio, previsão do tempo de uma estação de um aeroporto e uso de energia utilizada por luminárias.</p>
-									<p style="text-align: justify;">Nesse projeto de aprendizado de máquina precisamos realizar a filtragem de dados para remover parâmetros não preditivos e selecionar os melhores recursos para a previsão. O conjunto de dados foi coletado por um período de 10 minutos por cerca de 5 meses. As condições de temperatura e umidade da casa foram monitoradas com uma rede de sensores sem fio da ZigBee.</p>
-									<p style="text-align: justify;">Cada nó sem fio transmitia as condições de temperatura e umidade em torno de 3 min. Em seguida, a média dos dados foi calculada para períodos de 10 minutos. Os dados de energia foram registrados a cada 10 minutos com medidores de energia de barramento "m". O tempo da estação meteorológica mais próxima do aeroporto (Aeroporto de Chievres, Bélgica) foi baixado de um 	conjunto de dados públicos do Reliable Prognosis (rp5.ru) e mesclado com os conjuntos de dados experimentais usando a coluna de data e hora. Duas variáveis aleatórias foram incluídas no conjunto de dados para testar os modelos de regressão e filtrar os atributos não preditivos (parâmetros).</p>
-									<p style="text-align: justify;">Nosso trabalho agora é construir um modelo preditivo que possa prever o consumo de energia com base nos dados de sensores IoT coletados. Usaremos a linguagem R para a realização deste projeto.</p>
-									<p style="text-align: justify;">O dataset se encontra no link: <a href="https://www.kaggle.com/competitions/appliances-energy-prediction">Dados do Projeto</a></p>
-									
+					<p style="text-align: justify;">Este projeto de IoT tem como objetivo a criação de modelos
+						preditivos para a previsão de consumo de energia de eletrodoméstico. Os dados utilizados incluem
+						medições de sensores de temperatura e umidade de uma rede sem fio, previsão do tempo de uma
+						estação de um aeroporto e uso de energia utilizada por luminárias.</p>
+					<p style="text-align: justify;">Nesse projeto de aprendizado de máquina precisamos realizar a
+						filtragem de dados para remover parâmetros não preditivos e selecionar os melhores recursos para
+						a previsão. O conjunto de dados foi coletado por um período de 10 minutos por cerca de 5 meses.
+						As condições de temperatura e umidade da casa foram monitoradas com uma rede de sensores sem fio
+						da ZigBee.</p>
+					<p style="text-align: justify;">Cada nó sem fio transmitia as condições de temperatura e umidade em
+						torno de 3 min. Em seguida, a média dos dados foi calculada para períodos de 10 minutos. Os
+						dados de energia foram registrados a cada 10 minutos com medidores de energia de barramento "m".
+						O tempo da estação meteorológica mais próxima do aeroporto (Aeroporto de Chievres, Bélgica) foi
+						baixado de um conjunto de dados públicos do Reliable Prognosis (rp5.ru) e mesclado com os
+						conjuntos de dados experimentais usando a coluna de data e hora. Duas variáveis aleatórias foram
+						incluídas no conjunto de dados para testar os modelos de regressão e filtrar os atributos não
+						preditivos (parâmetros).</p>
+					<p style="text-align: justify;">Nosso trabalho agora é construir um modelo preditivo que possa
+						prever o consumo de energia com base nos dados de sensores IoT coletados. Usaremos a linguagem R
+						para a realização deste projeto.</p>
+					<p style="text-align: justify;">O dataset se encontra no link: <a
+							href="https://www.kaggle.com/competitions/appliances-energy-prediction">Dados do Projeto</a>
+					</p>
 
-									<hr class="major" />
 
-									<h2>Arquivos do Projeto</h2>
-									<section>
-										<ul class="contact">
-											<li class="icon solid fa fa-paperclip">
-												<a href="./Modelagem_Preditiva_Aplicada_a_IoT-Previsao_de_Consumo_de_Energia_Residencial/Relatorio Executivo.pdf" download>Relatório Executivo</a>
-											</li>
-											<br>
-											<li class="icon solid fa fa-paperclip">
-												<a href="./Modelagem_Preditiva_Aplicada_a_IoT-Previsao_de_Consumo_de_Energia_Residencial/Executive Report.pdf" download>Executive Report</a>
-											</li>
-											<br>
-											<li class="icon solid fa fa-code">
-												<a href="./Modelagem_Preditiva_Aplicada_a_IoT-Previsao_de_Consumo_de_Energia_Residencial/Notebook.Rmd" download>Notebook</a>
-											</li>
-										</ul>
-									</section>
+					<hr class="major" />
 
-								</section>
+					<h2>Arquivos do Projeto</h2>
+					<section>
+						<ul class="contact">
+							<li class="icon solid fa fa-paperclip">
+								<a href="./Modelagem_Preditiva_Aplicada_a_IoT-Previsao_de_Consumo_de_Energia_Residencial/Relatorio Executivo.pdf"
+									download>Relatório Executivo</a>
+							</li>
+							<br>
+							<li class="icon solid fa fa-paperclip">
+								<a href="./Modelagem_Preditiva_Aplicada_a_IoT-Previsao_de_Consumo_de_Energia_Residencial/Executive Report.pdf"
+									download>Executive Report</a>
+							</li>
+							<br>
+							<li class="icon solid fa fa-code">
+								<a href="./Modelagem_Preditiva_Aplicada_a_IoT-Previsao_de_Consumo_de_Energia_Residencial/Notebook.Rmd"
+									download>Notebook</a>
+							</li>
+						</ul>
+					</section>
 
-						</div>
-					</div>
-
-				<!-- Sidebar -->
-				<div id="sidebar">
-					<div class="inner">
-
-						<!-- Search -->
-							<!-- <section id="search" class="alt">
-								<form method="post" action="#">
-									<input type="text" name="query" id="query" placeholder="Search" />
-								</form>
-							</section> -->
-
-						<!-- Menu -->
-							<nav id="menu">
-								<header class="major">
-									<h2>Menu</h2>
-								</header>
-								<ul>
-									<li><a href="index.html">Página Inicial</a></li>
-									<li><a href="./story.html">Sobre Mim!</a></li>
-									<li>Trabalhos Realizados
-										<li>
-											<span class="opener">Industria e Varejo</span>
-											<ul>
-												<li><a href="./projeto1.html">Previsão de Consumo de Energia de Carros Elétricos</a></li>
-												<li><a href="./projeto2.html">Previsão de Eficiência de Extintores de Incêndio</a></li>
-												<li><a href="./projeto3.html">Previsão de Satisfação de Clientes do Banco Santander</a></li>
-												<li><a href="./projeto4.html">Previsão de CHURN em Operadora de Telecom</a></li>
-												<li><a href="./projeto5.html">Classificação de Mutações Genéticas de Tumores com NLP e ML</a></li>
-												<li><a href="./projeto6.html">Modelagem Preditiva Aplicada a IoT</a></li>
-												<li><a href="./projeto7.html">Regras de Associação e Previsão de Recompra em Mercado Online</a></li>
-											</ul>
-										</li>
-									</li>
-									<!-- <li>
-										<span class="opener">Risco de Crédito e Fraude</span>
-										<ul>
-											<li><a href="#">Lorem Dolor</a></li>
-											<li><a href="#">Ipsum Adipiscing</a></li>
-											<li><a href="#">Tempus Magna</a></li>
-											<li><a href="#">Feugiat Veroeros</a></li>
-										</ul>
-									</li> -->
-								</ul>
-							</nav>
-
-						<!-- Section
-							<section>
-								<header class="major">
-									<h2>Ante interdum</h2>
-								</header>
-								<div class="mini-posts">
-									<article>
-										<a href="#" class="image"><img src="images/pic07.jpg" alt="" /></a>
-										<p>Aenean ornare velit lacus, ac varius enim lorem ullamcorper dolore aliquam.</p>
-									</article>
-									<article>
-										<a href="#" class="image"><img src="images/pic08.jpg" alt="" /></a>
-										<p>Aenean ornare velit lacus, ac varius enim lorem ullamcorper dolore aliquam.</p>
-									</article>
-									<article>
-										<a href="#" class="image"><img src="images/pic09.jpg" alt="" /></a>
-										<p>Aenean ornare velit lacus, ac varius enim lorem ullamcorper dolore aliquam.</p>
-									</article>
-								</div>
-								<ul class="actions">
-									<li><a href="#" class="button">More</a></li>
-								</ul>
-							</section> -->
-
-						<!-- Section -->
-							<section>
-								<header class="major">
-									<h2>Contatos</h2>
-								</header>
-								<ul class="contact">
-									<li class="icon solid fa fa-download">
-										<a href="./assets/documents/Currículo - Thiago Bulgarelli - Cientista de Dados.pdf" download>Download CV</a>
-									</li>
-									<li class="icon solid fa-envelope">bugath36@gmail.com</li>
-									<li class="icon solid fa-phone">(012) 99637-6357</li>
-									<li class="icon brands fa-linkedin">
-										<a href="https://www.linkedin.com/in/thiago-bulgarelli-573480225/">Thiago Bulgarelli</a></li>
-								</ul>
-							</section>
-
-						<!-- Footer -->
-							<!-- <footer id="footer">
-								<p class="copyright">&copy; Untitled. All rights reserved. Demo Images: <a href="https://unsplash.com">Unsplash</a>. Design: <a href="https://html5up.net">HTML5 UP</a>.</p>
-							</footer> -->
-
-					</div>
-				</div>
+				</section>
 
 			</div>
+		</div>
 
-		<!-- Scripts -->
-			<script src="assets/js/jquery.min.js"></script>
-			<script src="assets/js/browser.min.js"></script>
-			<script src="assets/js/breakpoints.min.js"></script>
-			<script src="assets/js/util.js"></script>
-			<script src="assets/js/main.js"></script>
+		<!-- Sidebar -->
+		<div id="sidebar">
+			<div class="inner">
 
-	</body>
+				<!-- Search -->
+				<!-- <section id="search" class="alt">
+												<form method="post" action="#">
+													<input type="text" name="query" id="query" placeholder="Search" />
+												</form>
+											</section> -->
+
+				<!-- Menu -->
+				<nav id="menu">
+					<header class="major">
+						<h2>Menu</h2>
+					</header>
+					<ul>
+						<li><a href="index.html">Página Inicial</a></li>
+						<li><a href="./story.html">Sobre Mim!</a></li>
+						<li>Trabalhos Realizados
+						<li>
+							<span class="opener">Industria e Varejo</span>
+							<ul>
+								<li><a href="./projeto1.html">Previsão de Consumo de Energia de Carros Elétricos</a>
+								</li>
+								<li><a href="./projeto2.html">Previsão de Eficiência de Extintores de Incêndio</a></li>
+								<li><a href="./projeto3.html">Previsão de Satisfação de Clientes do Banco Santander</a>
+								</li>
+								<li><a href="./projeto4.html">Previsão de CHURN em Operadora de Telecom</a></li>
+								<li><a href="./projeto5.html">Classificação de Mutações Genéticas de Tumores com NLP e
+										ML</a>
+								</li>
+								<li><a href="./projeto6.html">Modelagem Preditiva Aplicada a IoT</a></li>
+								<li><a href="./projeto7.html">Regras de Associação e Previsão de Recompra em Mercado
+										Online</a>
+								</li>
+							</ul>
+						</li>
+						</li>
+						<li>
+							<span class="opener">Risco de Crédito e Fraude</span>
+							<ul>
+								<li><a href="./projeto8.html">Modelagem Preditiva Aplicada a Risco de Crédito</a></li>
+								<!-- <li><a href="#">Ipsum Adipiscing</a></li>
+															<li><a href="#">Tempus Magna</a></li>
+															<li><a href="#">Feugiat Veroeros</a></li> -->
+							</ul>
+						</li>
+					</ul>
+				</nav>
+
+				<!-- Section
+											<section>
+												<header class="major">
+													<h2>Ante interdum</h2>
+												</header>
+												<div class="mini-posts">
+													<article>
+														<a href="#" class="image"><img src="images/pic07.jpg" alt="" /></a>
+														<p>Aenean ornare velit lacus, ac varius enim lorem ullamcorper dolore aliquam.</p>
+													</article>
+													<article>
+														<a href="#" class="image"><img src="images/pic08.jpg" alt="" /></a>
+														<p>Aenean ornare velit lacus, ac varius enim lorem ullamcorper dolore aliquam.</p>
+													</article>
+													<article>
+														<a href="#" class="image"><img src="images/pic09.jpg" alt="" /></a>
+														<p>Aenean ornare velit lacus, ac varius enim lorem ullamcorper dolore aliquam.</p>
+													</article>
+												</div>
+												<ul class="actions">
+													<li><a href="#" class="button">More</a></li>
+												</ul>
+											</section> -->
+
+				<!-- Section -->
+				<section>
+					<header class="major">
+						<h2>Contatos</h2>
+					</header>
+					<ul class="contact">
+						<li class="icon solid fa fa-download">
+							<a href="./assets/documents/Currículo - Thiago Bulgarelli - Cientista de Dados.pdf"
+								download>Download CV</a>
+						</li>
+						<li class="icon solid fa-envelope">bugath36@gmail.com</li>
+						<li class="icon solid fa-phone">(012) 99637-6357</li>
+						<li class="icon brands fa-linkedin">
+							<a href="https://www.linkedin.com/in/thiago-bulgarelli-573480225/">Thiago Bulgarelli</a>
+						</li>
+					</ul>
+				</section>
+
+				<!-- Footer -->
+				<!-- <footer id="footer">
+												<p class="copyright">&copy; Untitled. All rights reserved. Demo Images: <a href="https://unsplash.com">Unsplash</a>. Design: <a href="https://html5up.net">HTML5 UP</a>.</p>
+											</footer> -->
+
+			</div>
+		</div>
+
+	</div>
+
+	<!-- Scripts -->
+	<script src="assets/js/jquery.min.js"></script>
+	<script src="assets/js/browser.min.js"></script>
+	<script src="assets/js/breakpoints.min.js"></script>
+	<script src="assets/js/util.js"></script>
+	<script src="assets/js/main.js"></script>
+
+</body>
+
 </html>
